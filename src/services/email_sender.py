@@ -1,38 +1,60 @@
+from email.message import EmailMessage
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.application import MIMEApplication
+import os
 
-def send_test_mail(body):
-    sender_email = "sender@email.com"
-    receiver_email = "receiver@email.com"
 
-    msg = MIMEMultipart()
-    msg['Subject'] = '[Email Test]'
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
+SENDER_MAIL = "berichtsheftautomated@gmail.com"
 
-    msgText = MIMEText('<b>%s</b>' % (body), 'html')
-    msg.attach(msgText)
 
-    filename = "example.txt"
-    msg.attach(MIMEText(open(filename).read()))
+def create_mail(content, bytes, mails):
+    msg = EmailMessage()
+    msg['Subject'] = f'Berichtsheft KW {content["date"]} Nr {content["berichtNummer"]}'
+    msg['From'] = SENDER_MAIL
+    msg["To"] = ", ".join(mails)
 
-    with open('example.jpg', 'rb') as fp:
-        img = MIMEImage(fp.read())
-        img.add_header('Content-Disposition', 'attachment', filename="example.jpg")
-        msg.attach(img)
-        
-    pdf = MIMEApplication(open("example.pdf", 'rb').read())
-    pdf.add_header('Content-Disposition', 'attachment', filename= "example.pdf")
-    msg.attach(pdf)
+    message_body = [
+        "Hi mein Liebster,"
+        "",
+        "Hier dein Berichtsheft",
+        "Falls mit der Word Datei etwas fucked ist, hier nochmal der Content:"
+        "",
+        "Betriebliche Todo's:",
+        content["todos"],
+        "",
+        "Wochenbericht:",
+        content["weekly_theme"],
+        "",
+        "Schulschmutz",
+        content["school"],
+        "",
+        "Have an wonderful Day"
+    ]
 
+    msg.set_content("\n".join(message_body))
+
+    file_name = "Berichtsheft_{}_KW_{}.docx".format(
+        content["berichtNummer"], content["date"])
+
+    msg.add_attachment(bytes, maintype="application",
+                       subtype="vnd.openxmlformats-officedocument.wordprocessingml.document", filename=file_name)
+
+    return msg
+
+
+def send_mail(content, bytes):
+    mails = [mail.strip() for mail in content["mails"]]
+
+    mail = create_mail(content, bytes, mails)
+    print(os.getenv("EMAIL_PW", ""))
     try:
-        with smtplib.SMTP('smtp.office365.com', 587) as smtpObj:
+        with smtplib.SMTP('smtp.gmail.com', 587) as smtpObj:
             smtpObj.ehlo()
+            print("a")
             smtpObj.starttls()
-            smtpObj.login("sender@email.com", "password")
-            smtpObj.sendmail(sender_email, receiver_email, msg.as_string())
+            print("b")
+            smtpObj.login(SENDER_MAIL, os.getenv("EMAIL_PW", ""))
+            print("c")
+            smtpObj.sendmail(SENDER_MAIL, mails, mail)  # type: ignore
+            print("e")
     except Exception as e:
         print(e)

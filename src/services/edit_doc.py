@@ -4,6 +4,12 @@ import io
 BASE_TEMPLATE = r"C:\Users\fisch\Desktop\projects\web\berichtsheft_server\src\services\Berichtsheft_Template.docx"
 
 
+def format_todos(todos):
+    lines: list[str] = todos.split("\n")
+    lines = [line.strip().lstrip("-").lstrip() for line in lines]
+    return "\n".join(["    -  " + line for line in lines])
+
+
 def prepare_data(content):
     point = content["point"]
     if point:
@@ -15,7 +21,7 @@ def prepare_data(content):
         "department": content["department"],
         "nr": str(content["berichtNummer"]),
         "kw": content["date"],
-        "todo": content["todos"],
+        "todo": format_todos(content["todos"]),
         "weekly": content["weekly_theme"],
         "school": content["school"],
         "four": point
